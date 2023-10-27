@@ -10,7 +10,8 @@ int main() {
 	cout << a << " " << b << " " << c;
 
 	return 0;
-
+
+
 #include <iostream>
 using namespace std;
 int main()

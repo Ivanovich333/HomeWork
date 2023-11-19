@@ -1,131 +1,189 @@
 #include <iostream>
+#include <stack>
+#include <cmath>
 using namespace std;
 
-struct Matrix {
-    int** data_ = nullptr;
-    size_t n_ = 0u;
-    size_t m_ = 0u;
+struct sym {
+    char type;
+    double value;
 };
 
-void Conclusion(Matrix out, size_t n, size_t m);
-void Construct(Matrix& out, size_t n, size_t m);
-void Destruct(Matrix& in);
-Matrix Copy(const Matrix& matrix);
-Matrix Create(size_t n, size_t m);
-Matrix Add(const Matrix& a, const Matrix& b);
-Matrix Sub(const Matrix& a, const Matrix& b);
-Matrix Mult(const Matrix& a, const Matrix& b);
-void Transposition(Matrix& matrix);
-
-int main() {
-    int n1, m1;
-    cin >> n1 >> m1;
-    Matrix mat1 = Create(n1, m1);
-    Conclusion(mat1, n1, m1);
-    Transposition(mat1);
-    Conclusion(mat1, n1, m1);
+int priority(char ch) {
+    if (ch == '+' or ch == '-') {
+        return 1;
+    }
+    if (ch == '*' or ch == '/') {
+        return 2;
+    }
+    if (ch == '^') {
+        return 3;
+    }
     return 0;
 }
 
-void Transposition(Matrix& matrix) {
-    Matrix trans = Create(matrix.m_, matrix.n_);
-    for (size_t i = 0; i < matrix.m_; ++i) {
-        for (size_t j = 0; j < matrix.n_; ++j) {
-            trans.data_[i][j] = matrix.data_[j][i];
-        }
+bool math(stack <sym> & s_num, stack <sym> & s_op, sym & item) {
+    double a, b, c;
+    a = s_num.top().value;
+    s_num.pop();
+    switch (s_op.top().type) {
+        case '+':
+            b = s_num.top().value;
+            s_num.pop();
+            c = a + b;
+            item.type = '0';
+            item.value = c;
+            s_num.push(item);
+            s_op.pop();
+            break;
+        case '-':
+            b = s_num.top().value;
+            s_num.pop();
+            c = b - a;
+            item.type = '0';
+            item.value = c;
+            s_num.push(item);
+            s_op.pop();
+            break;
+        case '*':
+            b = s_num.top().value;
+            s_num.pop();
+            c = a * b;
+            item.type = '0';
+            item.value = c;
+            s_num.push(item);
+            s_op.pop();
+            break;
+        case '/':
+            b = s_num.top().value;
+            s_num.pop();
+            if (a == 0) {
+                cout << "\nДеление на ноль\n";
+                return false;
+            }
+            if (a != 0) {
+                c = b / a;
+                item.type = '0';
+                item.value = c;
+                s_num.push(item);
+                s_op.pop();
+                break;
+            }
+        case '^':
+            b = s_num.top().value;
+            s_num.pop();
+            c = pow(b, a);
+            item.type = '0';
+            item.value = c;
+            s_num.push(item);
+            s_op.pop();
+            break;
     }
-    matrix = trans;
+    return true;
 }
 
-Matrix Mult(const Matrix& a, const Matrix& b) {
-    if (a.m_ != b.n_) {
-        return Matrix{nullptr, 0u, 0u};
-    }
-    Matrix newm = Create(a.n_, b.m_);
-    Construct(newm, newm.n_, newm.m_);
-    for (size_t i = 0; i < a.n_; ++i) {
-        for (size_t j = 0; j < b.m_; ++j) {
-            for (size_t k = 0; k < a.m_; ++k) {
-                newm.data_[i][j] += a.data_[i][k] * b.data_[k][j];
+
+int main() {
+    setlocale(LC_ALL, "rus");
+    char ch;
+    bool f = 1;
+    double value;
+    stack<sym> s_num;
+    stack<sym> s_op;
+    sym item;
+    while (1) {
+        ch = cin.peek();
+        if (ch == '\n') {
+            break;
+        }
+        if (ch >= '0' and ch <= '9' or (ch == '-' and f==1)) {
+            cin >> value;
+            item.type = '0';
+            item.value = value;
+            s_num.push(item);
+            f = 0;
+            continue;
+        }
+        if (ch == '+' or (ch == '-' and f==0) or ch == '*' or ch == '/' or ch == '^') {
+            if (s_op.size() == 0) {
+                item.type = ch;
+                item.value = 0;
+                s_op.push(item);
+                cin.ignore();
+                continue;
+            }
+            if (s_op.size() != 0 and priority(ch) > priority(s_op.top().type)) {
+                item.type = ch;
+                item.value = 0;
+                s_op.push(item);
+                cin.ignore();
+                continue;
+            }
+            if (s_op.size() != 0 and priority(ch) <= priority(s_op.top().type)) {
+                if (math(s_num, s_op, item) == false) {
+                    system("pause");
+                    return 0;
+                }
+                else continue;
             }
         }
-    }
-    return newm;
-}
-
-Matrix Sub(const Matrix& a, const Matrix& b) {
-    if (a.n_ != b.n_ or a.m_ != b.m_) {
-        return Matrix{nullptr, 0u, 0u};
-    }
-    Matrix newm = Create(a.n_, a.m_);
-    for (size_t i = 0; i < a.n_; ++i) {
-        for (size_t j = 0; j < a.m_; ++j) {
-            newm.data_[i][j] = a.data_[i][j] - b.data_[i][j];
+        if (ch == '(') {
+            f=1;
+            item.type = ch;
+            item.value = 0;
+            s_op.push(item);
+            cin.ignore();
+            continue;
+        }
+        if (ch == ')') {
+            while (s_op.top().type != '(') {
+                if (math(s_num, s_op, item) == false) {
+                    system("pause");
+                    return 0;
+                }
+                else continue;
+            }
+            s_op.pop();
+            cin.ignore();
         }
     }
-    return newm;
-}
-
-Matrix Add(const Matrix& a, const Matrix& b) {
-    if (a.n_ != b.n_ or a.m_ != b.m_) {
-        return Matrix{nullptr, 0u, 0u};
-    }
-    Matrix newm = Create(a.n_, a.m_);
-    for (size_t i = 0; i < a.n_; ++i) {
-        for (size_t j = 0; j < a.m_; ++j) {
-            newm.data_[i][j] = a.data_[i][j] + b.data_[i][j];
+    while (s_op.size() != 0) {
+        if (math(s_num, s_op, item) == false) {
+            system("pause");
+            return 0;
         }
+        else continue;
     }
-    return newm;
+    cout << "Ответ: " << s_num.top().value << endl;
+    return 0;
 }
 
-Matrix Create(size_t n, size_t m) {
-    Matrix mat;
-    mat.n_ = n;
-    mat.m_ = m;
-    mat.data_ = new int* [mat.n_];
-    for (size_t i = 0; i < mat.n_; ++i) {
-        mat.data_[i] = new int[mat.m_];
-    }
-    for (size_t i = 0; i < mat.n_; ++i) {
-        for (size_t j = 0; j < mat.m_; ++j) {
-            mat.data_[i][j] = rand()%50;
-        }
-    }
-    return mat;
-}
 
-Matrix Copy(const Matrix& matrix) {
-    Matrix matcop = Create(matrix.n_, matrix.m_);
-    for (size_t i = 0; i < matrix.n_; ++i) {
-        for (size_t j = 0; j < matrix.m_; ++j) {
-            matcop.data_[i][j] = matrix.data_[i][j];
-        }
-    }
-    return matcop;
-}
 
-void Destruct(Matrix& in) {
-    for (size_t i = 0; i < in.n_; ++i) {
-        delete[]in.data_[i];
-    }
-    delete[]in.data_;
-}
 
-void Construct(Matrix& out, size_t n, size_t m) {
-    for (size_t i = 0; i < out.n_; ++i) {
-        for (size_t j = 0; j < out.m_; ++j) {
-            out.data_[i][j] = 0;
-        }
-    }
-}
 
-void Conclusion(Matrix out, size_t n, size_t m) {
-    for (size_t i = 0; i < out.n_; ++i) {
-        for (size_t j = 0; j < out.m_; ++j) {
-            cout << out.data_[i][j] << " ";
-        }
-        cout << endl;
-    }
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
